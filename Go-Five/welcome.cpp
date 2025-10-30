@@ -2,7 +2,7 @@
 
 welcome::welcome() : QMainWindow()
 {
-    this->setFixedSize(300,200);
+    this->setFixedSize(300,260);
 
     this->goBtn = new QPushButton("GO", this);
     this->goBtn->setGeometry(100,20,100,50);
@@ -14,8 +14,13 @@ welcome::welcome() : QMainWindow()
     this->fiveBtn->setEnabled(true);
     QObject::connect(fiveBtn,SIGNAL(clicked()),this,SLOT(startFive()));
 
+    this->ticTacToeBtn = new QPushButton("TIC TAC TOE", this);
+    this->ticTacToeBtn->setGeometry(100,140,100,50);
+    this->ticTacToeBtn->setEnabled(true);
+    QObject::connect(ticTacToeBtn,SIGNAL(clicked()),this,SLOT(startTicTacToe()));
+
     this->quitBtn = new QPushButton("QUIT", this);
-    this->quitBtn->setGeometry(100,140,100,50);
+    this->quitBtn->setGeometry(100,200,100,50);
     this->quitBtn->setEnabled(true);
     QObject::connect(quitBtn,SIGNAL(clicked()),this,SLOT(close()));
 }
@@ -30,6 +35,12 @@ void welcome::startFive(){
 
 void welcome::startGo(){
     this->go = new Go();
+
+    this->close();
+}
+
+void welcome::startTicTacToe(){
+    this->ticTacToe = new TicTacToe();
 
     this->close();
 }
