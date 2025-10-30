@@ -17,6 +17,8 @@ public:
     void setColor(int n);
     void receivePiece(int y, int x, int color);
     void remove(int y, int x);
+    void setSandboxMode(bool enabled);
+    void clearAll();
 
     bool isTurn;
     bool isStart;
@@ -27,6 +29,7 @@ private:
     int chess[19][19];
     int yIndex;
     int xIndex;
+    bool sandboxMode;
 
 private:
     void paintEvent(QPaintEvent *);

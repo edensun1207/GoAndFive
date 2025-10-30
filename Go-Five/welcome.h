@@ -5,6 +5,7 @@
 #include <QPushButton>
 #include "five.h"
 #include "go.h"
+#include "localfive.h"
 
 namespace Ui {
 class Welcome;
@@ -24,13 +25,16 @@ public:
 private slots:
     void startFive();
     void startGo();
+    void startLocalFive();
 
 private:
     Five *five;
     Go *go;
+    LocalFive *localFive;
 
     QPushButton *goBtn;
     QPushButton *fiveBtn;
+    QPushButton *localFiveBtn;
     QPushButton *quitBtn;
 };
 

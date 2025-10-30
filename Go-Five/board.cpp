@@ -5,6 +5,10 @@ Board::Board(int n)
 {
     this->setFixedSize(100+30*n, 100+30*n);
     type = n;
+    sandboxMode = false;
+    isTurn = false;
+    isStart = false;
+    color = 1;
     initData();
 }
 
@@ -28,6 +32,19 @@ void Board::receivePiece(int y, int x, int color){
 
 void Board::remove(int y, int x){
     chess[y][x] = 0;
+    this->update();
+}
+
+void Board::setSandboxMode(bool enabled){
+    sandboxMode = enabled;
+    if (sandboxMode){
+        isStart = true;
+        isTurn = true;
+    }
+}
+
+void Board::clearAll(){
+    initData();
     this->update();
 }
 
@@ -77,7 +94,26 @@ void Board::drawPiece(QPainter *painter){
 }
 
 void Board::mousePressEvent(QMouseEvent *event){
-    if (isTurn && isStart){
+    if (sandboxMode){
+        QPoint point = event->pos();
+        if (point.x()>35 && point.x()<(type+1)*30+35 && point.y()>50 && point.y()<(type+1)*30+35) {
+            int x = (point.x()-5)/30-1;
+            int y = (point.y()-5)/30-1;
+
+            if(event->button() == Qt::RightButton){
+                chess[y][x] = 0;
+                this->update();
+                return;
+            }
+
+            if(chess[y][x] == 0){
+                chess[y][x] = color;
+                this->update();
+                // 轮流下子
+                color = -color;
+            }
+        }
+    } else if (isTurn && isStart){
         QPoint point = event->pos();
         qDebug() << point.x() << "    aaaa    " << point.y();
         if (point.x()>35 && point.x()<(type+1)*30+35 && point.y()>50 && point.y()<(type+1)*30+35) {

@@ -2,7 +2,7 @@
 
 welcome::welcome() : QMainWindow()
 {
-    this->setFixedSize(300,200);
+    this->setFixedSize(300,260);
 
     this->goBtn = new QPushButton("GO", this);
     this->goBtn->setGeometry(100,20,100,50);
@@ -14,8 +14,13 @@ welcome::welcome() : QMainWindow()
     this->fiveBtn->setEnabled(true);
     QObject::connect(fiveBtn,SIGNAL(clicked()),this,SLOT(startFive()));
 
+    this->localFiveBtn = new QPushButton("LOCAL FIVE", this);
+    this->localFiveBtn->setGeometry(100,140,100,50);
+    this->localFiveBtn->setEnabled(true);
+    QObject::connect(localFiveBtn,SIGNAL(clicked()),this,SLOT(startLocalFive()));
+
     this->quitBtn = new QPushButton("QUIT", this);
-    this->quitBtn->setGeometry(100,140,100,50);
+    this->quitBtn->setGeometry(100,200,100,50);
     this->quitBtn->setEnabled(true);
     QObject::connect(quitBtn,SIGNAL(clicked()),this,SLOT(close()));
 }
@@ -31,6 +36,11 @@ void welcome::startFive(){
 void welcome::startGo(){
     this->go = new Go();
 
+    this->close();
+}
+
+void welcome::startLocalFive(){
+    this->localFive = new LocalFive();
     this->close();
 }
 
