@@ -34,18 +34,25 @@ public:
 
     bool checkWin_Five(int y, int x);
     void remove_Go(int c);
+    bool checkWin_TicTacToe(int y, int x);
+    bool checkDraw_TicTacToe();
 
 private:
     QTcpServer *fiveServer;
     QTcpServer *goServer;
+    QTcpServer *tictactoeServer;
     int five[15][15];
     int go[19][19];
+    int tictactoe[3][3];
     User *userFive[2];
     User *userGo[2];
+    User *userTicTacToe[2];
     int fiveUserCount;
     int goUserCount;
+    int tictactoeUserCount;
     bool isGoStart;
     bool isFiveStart;
+    bool isTicTacToeStart;
 
     bool flag[19][19];
     QJsonArray removeArray;
@@ -62,6 +69,7 @@ public slots:
     void newListen();
     void acceptFiveConnection();
     void acceptGoConnection();
+    void acceptTicTacToeConnection();
     void userOff();
 };
 

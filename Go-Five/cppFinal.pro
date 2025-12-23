@@ -16,11 +16,13 @@ SOURCES += main.cpp\
         five.cpp \
     welcome.cpp \
     go.cpp \
-    board.cpp
+    board.cpp \
+    tictactoe.cpp
 
 HEADERS  += five.h \
     welcome.h \
     go.h \
-    board.h
+    board.h \
+    tictactoe.h
 
 QT += network
