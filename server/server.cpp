@@ -8,9 +8,11 @@ Server::Server(QWidget *parent) :
 
     this->fiveServer = new QTcpServer;
     this->goServer = new QTcpServer;
+    this->tictactoeServer = new QTcpServer;
     this->newListen();
     QObject::connect(fiveServer,SIGNAL(newConnection()),SLOT(acceptFiveConnection()));
     QObject::connect(goServer,SIGNAL(newConnection()),SLOT(acceptGoConnection()));
+    QObject::connect(tictactoeServer,SIGNAL(newConnection()),SLOT(acceptTicTacToeConnection()));
 
     this->init();
 }
@@ -26,11 +28,17 @@ void Server::init(){
         for(int j = 0; j < 19; j++)
             go[i][j] = 0;
     }
+    for(int i = 0; i < 3; i++){
+        for(int j = 0; j < 3; j++)
+            tictactoe[i][j] = 0;
+    }
 
     this->fiveUserCount = 0;
     this->goUserCount = 0;
+    this->tictactoeUserCount = 0;
     this->isGoStart = false;
     this->isFiveStart = false;
+    this->isTicTacToeStart = false;
 }
 void Server::userOff(){
     fiveUserCount--;
@@ -44,6 +52,11 @@ void Server::newListen(){
 
     if( !goServer->listen(QHostAddress::LocalHost, 8826)){
         qDebug() << goServer->errorString();
+        close();
+    }
+
+    if( !tictactoeServer->listen(QHostAddress::LocalHost, 8827)){
+        qDebug() << tictactoeServer->errorString();
         close();
     }
 }
@@ -119,6 +132,41 @@ void Server::acceptGoConnection(){
         qDebug() << "accept go connection";
         qDebug() << json;
         goUserCount++;
+    }
+}
+
+void Server::acceptTicTacToeConnection(){
+    if(tictactoeUserCount < 2){
+        userTicTacToe[tictactoeUserCount] = new User;
+        userTicTacToe[tictactoeUserCount]->tcpSocket = new QTcpSocket;
+        userTicTacToe[tictactoeUserCount]->tcpSocket = tictactoeServer->nextPendingConnection();
+        userTicTacToe[tictactoeUserCount]->isTurn = (tictactoeUserCount == 0);
+        userTicTacToe[tictactoeUserCount]->color = 1 - tictactoeUserCount * 2;
+
+        connect(userTicTacToe[tictactoeUserCount]->tcpSocket, SIGNAL(readyRead()), SLOT(receiveMsg()));
+
+        QJsonObject json;
+        json.insert("game", QString("tictactoe"));
+        json.insert("color", userTicTacToe[tictactoeUserCount]->color);
+        json.insert("state", tictactoeUserCount);
+
+        if(tictactoeUserCount == 1){
+            isTicTacToeStart = true;
+            QJsonObject obj;
+            obj.insert("start", isTicTacToeStart);
+            QJsonDocument doc;
+            doc.setObject(obj);
+            userTicTacToe[0]->tcpSocket->write(doc.toJson(QJsonDocument::Compact));
+        }
+
+        json.insert("start", isTicTacToeStart);
+        QJsonDocument document;
+        document.setObject(json);
+        userTicTacToe[tictactoeUserCount]->tcpSocket->write(document.toJson(QJsonDocument::Compact));
+
+        qDebug() << "accept tictactoe connection";
+        qDebug() << json;
+        tictactoeUserCount++;
     }
 }
 
@@ -267,6 +315,94 @@ void Server::receiveMsg(){
             std::cout << std::endl;
         }
 
+    }
+
+    // 九宫格游戏处理
+    if(isTicTacToeStart){
+        if(userTicTacToe[0]->isTurn){
+            byteArray = userTicTacToe[0]->tcpSocket->readAll();
+            document = QJsonDocument::fromJson(byteArray, &jsonError);
+            if(jsonError.error == QJsonParseError::NoError){
+                jsonObj = document.object();
+                qDebug() << "tictactoe test: " << jsonObj;
+                if(jsonObj.contains("play")){
+                    QJsonArray temp = jsonObj.take("play").toArray();
+                    yIndex = temp.at(0).toInt();
+                    xIndex = temp.at(1).toInt();
+                    qDebug() << "tictactoe Y: " << yIndex << " X: " << xIndex;
+                    tictactoe[yIndex][xIndex] = userTicTacToe[0]->color;
+
+                    userTicTacToe[0]->isTurn = false;
+                    userTicTacToe[0]->byte = byteArray;
+                    userTicTacToe[1]->isTurn = true;
+                }
+            }
+        }
+        else{
+            byteArray = userTicTacToe[1]->tcpSocket->readAll();
+            document = QJsonDocument::fromJson(byteArray, &jsonError);
+            if(jsonError.error == QJsonParseError::NoError){
+                jsonObj = document.object();
+                qDebug() << "tictactoe test: " << jsonObj;
+                if(jsonObj.contains("play")){
+                    QJsonArray temp = jsonObj.take("play").toArray();
+                    yIndex = temp.at(0).toInt();
+                    xIndex = temp.at(1).toInt();
+                    qDebug() << "tictactoe Y: " << yIndex << " X: " << xIndex;
+
+                    tictactoe[yIndex][xIndex] = userTicTacToe[1]->color;
+                    userTicTacToe[1]->byte = byteArray;
+                    userTicTacToe[1]->isTurn = false;
+                    userTicTacToe[0]->isTurn = true;
+                }
+            }
+        }
+
+        qDebug() << "tictactoe color: " << tictactoe[yIndex][xIndex];
+
+        // 检查是否获胜
+        if(checkWin_TicTacToe(yIndex, xIndex)){
+            QJsonObject winObj;
+            winObj.insert("win", tictactoe[yIndex][xIndex]);
+            qDebug() << "tictactoe: in check win";
+            QJsonDocument doc;
+            doc.setObject(winObj);
+            userTicTacToe[0]->tcpSocket->write(doc.toJson(QJsonDocument::Compact));
+            userTicTacToe[1]->tcpSocket->write(doc.toJson(QJsonDocument::Compact));
+            // 重置游戏
+            isTicTacToeStart = false;
+        }
+        // 检查是否平局
+        else if(checkDraw_TicTacToe()){
+            QJsonObject drawObj;
+            drawObj.insert("draw", true);
+            qDebug() << "tictactoe: draw";
+            QJsonDocument doc;
+            doc.setObject(drawObj);
+            userTicTacToe[0]->tcpSocket->write(doc.toJson(QJsonDocument::Compact));
+            userTicTacToe[1]->tcpSocket->write(doc.toJson(QJsonDocument::Compact));
+            // 重置游戏
+            isTicTacToeStart = false;
+        }
+        else{
+            // 发送对方的落子信息
+            if(userTicTacToe[0]->isTurn){
+                userTicTacToe[0]->tcpSocket->write(userTicTacToe[1]->byte);
+                qDebug() << "tictactoe: send from 1 to 0";
+            }
+            if(userTicTacToe[1]->isTurn){
+                userTicTacToe[1]->tcpSocket->write(userTicTacToe[0]->byte);
+                qDebug() << "tictactoe: send from 0 to 1";
+            }
+        }
+
+        // 打印棋盘状态
+        for(int i = 0; i < 3; ++i){
+            for(int j = 0; j < 3; j++){
+                std::cout << tictactoe[i][j] << " ";
+            }
+            std::cout << std::endl;
+        }
     }
 }
 
@@ -435,5 +571,39 @@ bool Server::hasQiOfColor(int c, int &p, int &q){
             }
         }
         return true;
+}
+
+bool Server::checkWin_TicTacToe(int y, int x){
+    int color = tictactoe[y][x];
+    if(color == 0) return false;
+
+    // 检查行
+    if(tictactoe[y][0] == color && tictactoe[y][1] == color && tictactoe[y][2] == color)
+        return true;
+
+    // 检查列
+    if(tictactoe[0][x] == color && tictactoe[1][x] == color && tictactoe[2][x] == color)
+        return true;
+
+    // 检查主对角线
+    if(tictactoe[0][0] == color && tictactoe[1][1] == color && tictactoe[2][2] == color)
+        return true;
+
+    // 检查副对角线
+    if(tictactoe[0][2] == color && tictactoe[1][1] == color && tictactoe[2][0] == color)
+        return true;
+
+    return false;
+}
+
+bool Server::checkDraw_TicTacToe(){
+    // 检查是否所有格子都已填满
+    for(int i = 0; i < 3; i++){
+        for(int j = 0; j < 3; j++){
+            if(tictactoe[i][j] == 0)
+                return false;
+        }
+    }
+    return true;
 }
 
